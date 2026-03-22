@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileVideo, X, Settings, ArrowRight } from 'lucide-react';
+import { UploadCloud, FileVideo, X, Settings, ArrowRight, AlertCircle } from 'lucide-react';
 // Base styles for media player and provider (~400B).
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
@@ -8,6 +8,8 @@ import { MediaPlayer, MediaProvider } from '@vidstack/react';
 import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
 import VideoPlayer from '@/component/VideoPlayer';
 import useUpload from '@/hooks/useUpload';
+import { useRouter } from 'next/navigation';
+import usePing from '@/hooks/usePing';
 
 
 const UploadPage = () => {
@@ -16,7 +18,9 @@ const UploadPage = () => {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [openPlayer, setOpenPlayer] = useState(false);
-    const { mutate: uploadVideo, } = useUpload()
+    const { mutate: uploadVideo, isPending, isError } = useUpload()
+    const { mutate: ping } = usePing()
+    const router = useRouter()
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -57,9 +61,10 @@ const UploadPage = () => {
     const handleUpload = () => {
         if (file) {
             uploadVideo({ fileName: file.name }, {
-                onSuccess: (data) => {
-                    console.log(data)
-                }
+                onSuccess: (data: { videoId: string }) => {
+                    ping({ videoId: data.videoId })
+                    router.push('/watch')
+                },
             });
         }
     };
@@ -139,10 +144,10 @@ const UploadPage = () => {
                                 </div>
 
 
-                                <button 
+                                <button
                                     onClick={handleUpload}
                                     className="cursor-pointer w-full mt-4 group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all duration-300 shadow-[0_0_40px_-10px_rgba(37,99,235,0.5)] hover:shadow-[0_0_60px_-15px_rgba(37,99,235,0.7)]">
-                                    <span>Upload Video</span>
+                                    <span>{isPending ? 'Uploading...' : 'Upload Video'}</span>
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </button>
                             </div>
@@ -179,6 +184,13 @@ const UploadPage = () => {
                     </div>
                 )
             }
+
+            <div className={`absolute top-0 left-1/2 -translate-x-1/2 text-white p-2 transition-all duration-1000 ${isError ? 'translate-y-0 z-99999' : '-translate-y-100 z-99999 opacity-0'}`}>
+                <div className='flex items-center gap-2 bg-red-500/20 p-2 rounded-xl'>
+                    <AlertCircle color='red' />
+                    An error occured, Try again!
+                </div>
+            </div>
         </div>
     );
 };
