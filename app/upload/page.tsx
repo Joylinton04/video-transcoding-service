@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileVideo, X, Settings, ArrowRight, AlertCircle } from 'lucide-react';
 // Base styles for media player and provider (~400B).
 import '@vidstack/react/player/styles/default/theme.css';
@@ -21,6 +21,26 @@ const UploadPage = () => {
     const { mutate: uploadVideo, isPending, isError } = useUpload()
     const { mutate: ping } = usePing()
     const router = useRouter()
+
+    // remove later
+    const [isUploading, setIsUploading] = useState(false)
+    const [progress, setProgress] = useState(0)
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isUploading) {
+            setProgress(0);
+            interval = setInterval(() => {
+                setProgress((prev) => {
+                    if (prev >= 100) return 100;
+                    return prev + (100 / (5000 / 100)); // 100ms interval => 50 steps => 2% per step
+                });
+            }, 100);
+        } else {
+            setProgress(0);
+        }
+        return () => clearInterval(interval);
+    }, [isUploading]);
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -61,11 +81,21 @@ const UploadPage = () => {
     const handleUpload = () => {
         if (file) {
             uploadVideo({ fileName: file.name }, {
-                onSuccess: (data: { videoId: string }) => {
-                    ping({ videoId: data.videoId })
-                    router.push('/watch')
+                onSuccess: (data) => {
+                    console.log(data)
+                    // ping({ videoId: data.videoId })
+                    // // router.push('/watch')
                 },
+                onError: (err) => {
+                    console.log(err)
+                }
             });
+
+            // setIsUploading(true)
+            // setTimeout(() => {
+            //     // router.push('/watch')
+            //     setIsUploading(false)
+            // }, 5000);
         }
     };
 
@@ -143,13 +173,36 @@ const UploadPage = () => {
                                     </button>
                                 </div>
 
-
                                 <button
                                     onClick={handleUpload}
+                                    disabled={isPending}
                                     className="cursor-pointer w-full mt-4 group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all duration-300 shadow-[0_0_40px_-10px_rgba(37,99,235,0.5)] hover:shadow-[0_0_60px_-15px_rgba(37,99,235,0.7)]">
-                                    <span>{isPending ? 'Uploading...' : 'Upload Video'}</span>
+                                    <span>{isPending ? "Uploading..." : "Upload Video"}</span>
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </button>
+                                {/* {
+                                    !isUploading ? (
+                                        <button
+                                            onClick={handleUpload}
+                                            className="cursor-pointer w-full mt-4 group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all duration-300 shadow-[0_0_40px_-10px_rgba(37,99,235,0.5)] hover:shadow-[0_0_60px_-15px_rgba(37,99,235,0.7)]">
+                                            <span>Upload Video</span>
+                                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                        </button>
+                                    ) : (
+                                        <div className="w-full mt-4 animate-fade-in">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-sm font-medium text-emerald-400">Uploading...</span>
+                                                <span className="text-sm font-bold text-emerald-400">{Math.round(progress)}%</span>
+                                            </div>
+                                            <div className="w-full bg-black/40 rounded-full h-3 overflow-hidden border border-white/10">
+                                                <div 
+                                                    className="bg-linear-to-r from-emerald-500 to-green-400 h-full transition-all duration-100 ease-linear rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)]" 
+                                                    style={{ width: `${progress}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )
+                                } */}
                             </div>
                         )}
                     </div>
@@ -190,6 +243,16 @@ const UploadPage = () => {
                     <AlertCircle color='red' />
                     An error occured, Try again!
                 </div>
+            </div>
+
+            {/* view all videos */}
+
+            <div className='text-center absolute top-10 right-10 z-9999 rounded-xl shadow-xl'>
+                <button
+                    className='px-6 bg-emerald-500 text-white p-3 rounded-xl cursor-pointer hover:scale-105 transition-all duration-300 hover:bg-emerald-400 font-semibold'
+                    onClick={() => router.push('/watch')}>
+                    Watch
+                </button>
             </div>
         </div>
     );
