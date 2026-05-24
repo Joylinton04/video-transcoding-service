@@ -4,6 +4,7 @@ import axios from 'axios';
 
 interface UploadParams {
     fileName: string;
+    fileType: string;
 }
 interface Response {
     videoId: string;
@@ -12,8 +13,8 @@ interface Response {
 
 const useUpload = () => {
     return useMutation({
-        mutationFn: async ({ fileName }: UploadParams) => {
-            const res = await axios.post<Response>(`${process.env.NEXT_PUBLIC_BACKEND_URL}/upload/init`, { fileName });
+        mutationFn: async ({ fileName, fileType }: UploadParams) => {
+            const res = await axios.post<Response>(`${process.env.NEXT_PUBLIC_BACKEND_URL}/upload/init`, { fileName, fileType});
             return res.data;
         }
     })
